@@ -5,9 +5,6 @@ import (
 	"moneyget/internal/domain"
 	"os"
 	"testing"
-	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func setupTestDB(t *testing.T) (*sql.DB, func()) {
@@ -43,14 +40,15 @@ func TestEventStore_Store(t *testing.T) {
 	store := NewEventStoreDB(db)
 
 	// テストケース1: InvestmentCreatedEventの保存
-	event := domain.InvestmentCreatedEvent{
-		ID:          "test-id",
-		UserID:      "user-id",
-		Amount:      1000,
-		OccurredAt: time.Now(),
+	money, err := domain.NewMoney(1000, "JPY")
+	if err != nil {
+		t.Fatalf("Failed to create money: %v", err)
 	}
 
-	err := store.Store(event)
+	investmentID := domain.NewInvestmentID("test-id")
+	event := domain.NewInvestmentCreatedEvent(investmentID, money)
+
+	err = store.Store(event)
 	if err != nil {
 		t.Errorf("Failed to store event: %v", err)
 	}
@@ -66,11 +64,8 @@ func TestEventStore_Store(t *testing.T) {
 	}
 
 	// テストケース2: PortfolioUpdatedEventの保存
-	portfolioEvent := domain.PortfolioUpdatedEvent{
-		ID:          "portfolio-id",
-		UserID:      "user-id",
-		OccurredAt: time.Now(),
-	}
+	portfolioID := domain.NewPortfolioID("portfolio-id")
+	portfolioEvent := domain.NewPortfolioUpdatedEvent(portfolioID, money)
 
 	err = store.Store(portfolioEvent)
 	if err != nil {

@@ -35,6 +35,18 @@ func (r *portfolioRepository) Create(ctx context.Context, portfolio *domain.Port
 		return err
 	}
 
+	// 投資との関連付けを登録
+	for _, investment := range portfolio.GetInvestments() {
+		_, err = tx.ExecContext(ctx,
+			"INSERT INTO portfolio_investments (portfolio_id, investment_id) VALUES (?, ?)",
+			portfolio.ID().Value,
+			investment.ID().Value,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	return tx.Commit()
 }
 

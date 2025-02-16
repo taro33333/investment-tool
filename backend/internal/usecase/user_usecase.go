@@ -3,12 +3,13 @@ package usecase
 import (
 	"moneyget/internal/domain"
 	"moneyget/internal/domain/service"
+	"time"
 )
 
 type UserUsecase interface {
 	Register(name, email, password string) error
 	Login(email, password string) (*domain.User, error)
-	GetUserByID(id uint) (*domain.User, error)
+	GetUserByID(id string) (*domain.User, error)
 }
 
 type userUsecase struct {
@@ -30,9 +31,10 @@ func (u *userUsecase) Register(name, email, password string) error {
 	}
 
 	user := &domain.User{
-		Name:     name,
-		Email:    email,
-		Password: hashedPassword,
+		Name:      name,
+		Email:     email,
+		Password:  hashedPassword,
+		CreatedAt: time.Now(),
 	}
 	return u.userRepo.Create(user)
 }
@@ -49,6 +51,6 @@ func (u *userUsecase) Login(email, password string) (*domain.User, error) {
 	return user, nil
 }
 
-func (u *userUsecase) GetUserByID(id uint) (*domain.User, error) {
+func (u *userUsecase) GetUserByID(id string) (*domain.User, error) {
 	return u.userRepo.FindByID(id)
 }

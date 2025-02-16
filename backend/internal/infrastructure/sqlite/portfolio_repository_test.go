@@ -26,10 +26,10 @@ func TestPortfolioRepository(t *testing.T) {
 	investment, _ := domain.NewInvestment(
 		domain.NewInvestmentID("test-investment"),
 		money,
-		domain.InvestmentTypeStock,
-		domain.InvestmentStrategyValue,
+		domain.Stock,
+		domain.Conservative,
 	)
-	
+
 	// 投資を作成
 	err := investmentRepo.Create(ctx, investment)
 	if err != nil {
@@ -89,20 +89,38 @@ func TestPortfolioRepository(t *testing.T) {
 		}
 	})
 
-	// Update のテスト
-	t.Run("Update", func(t *testing.T) {
-		portfolio.UserID = "updated-user"
-		err := repo.Update(ctx, portfolio)
+	// Save のテスト（投資の追加と削除）
+	t.Run("Save", func(t *testing.T) {
+		// 新しい投資を追加
+		newMoney, _ := domain.NewMoney(2000, "JPY")
+		newInvestment, _ := domain.NewInvestment(
+			domain.NewInvestmentID("test-investment-2"),
+			newMoney,
+			domain.Bond,
+			domain.Moderate,
+		)
+
+		err := investmentRepo.Create(ctx, newInvestment)
 		if err != nil {
-			t.Errorf("Failed to update portfolio: %v", err)
+			t.Errorf("Failed to create new investment: %v", err)
+		}
+
+		err = portfolio.AddInvestment(newInvestment)
+		if err != nil {
+			t.Errorf("Failed to add new investment to portfolio: %v", err)
+		}
+
+		err = repo.Save(ctx, portfolio)
+		if err != nil {
+			t.Errorf("Failed to save portfolio: %v", err)
 		}
 
 		found, err := repo.FindByID(ctx, portfolio.ID())
 		if err != nil {
 			t.Errorf("Failed to find updated portfolio: %v", err)
 		}
-		if found.UserID != "updated-user" {
-			t.Errorf("Expected updated UserID 'updated-user', got %s", found.UserID)
+		if len(found.GetInvestments()) != 2 {
+			t.Errorf("Expected 2 investments, got %d", len(found.GetInvestments()))
 		}
 	})
 

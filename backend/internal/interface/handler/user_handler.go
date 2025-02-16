@@ -12,13 +12,14 @@ import (
 )
 
 type UserHandler struct {
-	BaseHandler
+	base        BaseHandler
 	userUsecase usecase.UserUsecase
 	jwtService  service.JWTService
 }
 
 func NewUserHandler(u usecase.UserUsecase, j service.JWTService) *UserHandler {
 	return &UserHandler{
+		base:        BaseHandler{},
 		userUsecase: u,
 		jwtService:  j,
 	}
@@ -32,16 +33,16 @@ func (h *UserHandler) Register(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		h.ResponseError(c, http.StatusBadRequest, err)
+		h.base.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if err := h.userUsecase.Register(input.Name, input.Email, input.Password); err != nil {
-		h.ResponseError(c, http.StatusInternalServerError, err)
+		h.base.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	h.ResponseJSON(c, http.StatusCreated, gin.H{"message": "User registered successfully"})
+	h.base.ResponseJSON(c, http.StatusCreated, gin.H{"message": "User registered successfully"})
 }
 
 func (h *UserHandler) Login(c *gin.Context) {
@@ -51,40 +52,47 @@ func (h *UserHandler) Login(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		h.ResponseError(c, http.StatusBadRequest, err)
+		h.base.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	user, err := h.userUsecase.Login(input.Email, input.Password)
 	if err != nil {
-		h.ResponseUnauthorized(c, constants.InvalidCredentials)
+		h.base.ResponseUnauthorized(c, constants.InvalidCredentials)
 		return
 	}
 
-	token, err := h.jwtService.GenerateToken(user.ID)
+	// Convert user.ID (string) to uint
+	userID, err := strconv.ParseUint(user.ID, 10, 64)
 	if err != nil {
-		h.ResponseError(c, http.StatusInternalServerError, err)
+		h.base.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	h.ResponseJSON(c, http.StatusOK, gin.H{
+	token, err := h.jwtService.GenerateToken(uint(userID))
+	if err != nil {
+		h.base.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	h.base.ResponseJSON(c, http.StatusOK, gin.H{
 		"token": token,
 		"user":  user,
 	})
 }
 
 func (h *UserHandler) GetUser(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		h.ResponseError(c, http.StatusBadRequest, err)
+	id := c.Param("id")
+	if id == "" {
+		h.base.ResponseError(c, http.StatusBadRequest, nil)
 		return
 	}
 
-	user, err := h.userUsecase.GetUserByID(uint(id))
+	user, err := h.userUsecase.GetUserByID(id)
 	if err != nil {
-		h.ResponseError(c, http.StatusNotFound, err)
+		h.base.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
-	h.ResponseJSON(c, http.StatusOK, user)
+	h.base.ResponseJSON(c, http.StatusOK, user)
 }

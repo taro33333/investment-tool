@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"moneyget/internal/domain"
 	"testing"
-	"time"
 )
 
 func TestInvestmentRepository(t *testing.T) {
@@ -24,8 +23,8 @@ func TestInvestmentRepository(t *testing.T) {
 	investment, err := domain.NewInvestment(
 		domain.NewInvestmentID("test-investment"),
 		money,
-		domain.InvestmentTypeStock,
-		domain.InvestmentStrategyValue,
+		domain.Stock,
+		domain.Conservative,
 	)
 	if err != nil {
 		t.Fatalf("Failed to create investment: %v", err)
@@ -50,6 +49,9 @@ func TestInvestmentRepository(t *testing.T) {
 		}
 		if found.Amount().Amount != investment.Amount().Amount {
 			t.Errorf("Expected amount %f, got %f", investment.Amount().Amount, found.Amount().Amount)
+		}
+		if found.Type() != investment.Type() {
+			t.Errorf("Expected type %s, got %s", investment.Type(), found.Type())
 		}
 	})
 
